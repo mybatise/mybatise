@@ -1,0 +1,163 @@
+package ${package};
+
+import io.github.mybatise.core.condition.Condition;
+import io.github.mybatise.core.condition.IsEqualTo;
+import io.github.mybatise.core.condition.IsNotEqualTo;
+import io.github.mybatise.core.condition.IsNull;
+import io.github.mybatise.core.condition.IsNotNull;
+import io.github.mybatise.core.condition.IsBetween;
+import io.github.mybatise.core.condition.IsNotBetween;
+import io.github.mybatise.core.condition.IsIn;
+import io.github.mybatise.core.condition.IsNotIn;
+import io.github.mybatise.core.condition.IsLike;
+import io.github.mybatise.core.condition.IsNotLike;
+import io.github.mybatise.core.condition.IsLessThan;
+import io.github.mybatise.core.condition.IsGreaterThan;
+import io.github.mybatise.core.condition.IsLessThanOrEqualTo;
+import io.github.mybatise.core.condition.IsGreaterThanOrEqualTo;
+
+import io.github.mybatise.core.Column;
+import io.github.mybatise.core.Support;
+
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Objects;
+
+public final class ${className} extends Support<${entityTypeName}> {
+
+    #foreach($field in $fields)
+    private final static Column _${field.name} = Column.builder()
+                                                .property("${field.name}")
+                                                .name("${field.column}")
+                                                #if(${field.id})
+                                                .id(${field.id})
+                                                    #if($field.keyGenerator.generationType == "GENERATOR")
+                                                .identityGenerator(${field.keyGenerator.identityGeneratorType}.class)
+                                                    #end
+                                                #end
+                                                #if($field.typeHandler!="org.apache.ibatis.type.UnknownTypeHandler")
+                                                .typeHandler("${field.typeHandler}")
+                                                #end
+                                                #if($field.jdbcType!="UNDEFINED")
+                                                .jdbcType("${field.jdbcType}")
+                                                #end
+                                                .build();
+    #end
+
+    private ${className}() {
+    }
+
+    public static ${className} of() {
+        return new ${className}();
+    }
+
+    public static Mather mather() {
+        return new Mather();
+    }
+
+    public ${className} all(){
+        #foreach($field in $fields)
+        this.${field.name}();
+        #end
+        return this;
+    }
+
+    #foreach($field in $fields)
+    public ${className} ${field.name}() {
+        fields.add(_${field.name});
+        return this;
+    }
+    #end
+
+    @Override
+    public String getTable() {
+        return "${tableName}";
+    }
+
+    public ${className} withMather(Mather mather){
+        Objects.requireNonNull(mather);
+        this.conditions.addAll(mather.conditions);
+        return this;
+    }
+
+    public ${className} withValue(${entityTypeName} value){
+        this.value = value;
+        return this;
+    }
+
+    public static class Mather {
+        private final List<Condition> conditions = new ArrayList<>();
+    #foreach($field in $fields)
+
+        public Mather ${field.name}IsNull() {
+            conditions.add(new IsNull(_${field.name}));
+            return this;
+        }
+
+        public Mather ${field.name}IsNotNull() {
+            conditions.add(new IsNotNull(_${field.name}));
+            return this;
+        }
+
+        public Mather ${field.name}EqualTo(${field.type} value) {
+            conditions.add(new IsEqualTo<${field.type}>(_${field.name}, value));
+            return this;
+        }
+
+        public Mather ${field.name}IsNotEqualTo(${field.type} value) {
+            conditions.add(new IsNotEqualTo<${field.type}>(_${field.name}, value));
+            return this;
+        }
+
+        public Mather ${field.name}IsLessThan(${field.type} value) {
+            conditions.add(new IsLessThan<${field.type}>(_${field.name}, value));
+            return this;
+        }
+
+        public Mather ${field.name}IsGreaterThan(${field.type} value) {
+            conditions.add(new IsGreaterThan<${field.type}>(_${field.name}, value));
+            return this;
+        }
+
+        public Mather ${field.name}IsLessThanOrEqualTo(${field.type} value) {
+            conditions.add(new IsLessThanOrEqualTo<${field.type}>(_${field.name}, value));
+            return this;
+        }
+
+        public Mather ${field.name}IsGreaterThanOrEqualTo(${field.type} value) {
+            conditions.add(new IsGreaterThanOrEqualTo<${field.type}>(_${field.name}, value));
+            return this;
+        }
+#if($field.type=="java.lang.String")
+        public Mather ${field.name}IsLike(${field.type} value) {
+            conditions.add(new IsLike<${field.type}>(_${field.name}, value));
+            return this;
+        }
+
+        public Mather ${field.name}IsNotLike(${field.type} value) {
+            conditions.add(new IsNotLike<${field.type}>(_${field.name}, value));
+            return this;
+        }
+#end
+        public Mather ${field.name}IsBetween(${field.type} value, ${field.type} secondValue) {
+            conditions.add(new IsBetween<${field.type}>(_${field.name}, value, secondValue));
+            return this;
+        }
+
+        public Mather ${field.name}IsNotBetween(${field.type} value, ${field.type} secondValue) {
+            conditions.add(new IsNotBetween<${field.type}>(_${field.name}, value, secondValue));
+            return this;
+        }
+
+        public Mather ${field.name}IsIn(List<${field.type}> value) {
+            conditions.add(new IsIn<${field.type}>(_${field.name}, value));
+            return this;
+        }
+
+        public Mather ${field.name}IsNotIn(List<${field.type}> value) {
+            conditions.add(new IsNotIn<${field.type}>(_${field.name}, value));
+            return this;
+        }
+    #end
+    }
+}

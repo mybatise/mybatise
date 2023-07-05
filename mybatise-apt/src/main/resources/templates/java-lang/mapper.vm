@@ -1,0 +1,89 @@
+package ${package};
+
+import io.github.mybatise.core.SupportProvider;
+import org.apache.ibatis.annotations.*;
+#foreach($importItem in $imports)
+import $importItem;
+#end
+
+import java.util.List;
+
+public interface ${className} {
+
+    @SelectProvider(type = SupportProvider.class, method = "select")
+    @Results(id = "${resultMapId}",
+        value = {
+#foreach($field in $fields)
+    @Result(property = "${field.name}", column = "${field.column}"#if($field.id), id = true#end#if($field.typeHandler!="org.apache.ibatis.type.UnknownTypeHandler"), typeHandler = ${field.typeHandler}.class#end#if($field.jdbcType!="UNDEFINED"), jdbcType = JdbcType.${field.jdbcType}#end),
+#end})
+    List<${entityTypeName}> selectManyWithSupport(${supportTypeName} support);
+
+    @ResultMap("${resultMapId}")
+    @SelectProvider(type = SupportProvider.class, method = "select")
+    ${entityTypeName} selectOneWithSupport(${supportTypeName} support);
+
+#if($pkField)
+    #if($pkField.keyGenerator.generationType == "STATEMENT")
+    @SelectKey(keyProperty = "value.${pkField.name}", statement="${pkField.keyGenerator.keyStatement}", before=${pkField.keyGenerator.executeBefore}, resultType = ${pkField.type}.class)
+    #elseif($pkField.keyGenerator.generationType == "IDENTITY")
+    @Options(useGeneratedKeys = true, keyProperty = "value.${pkField.name}")
+    #end
+#end
+    @InsertProvider(type = SupportProvider.class, method = "insert")
+    int insertWithSupport(${supportTypeName} support);
+
+    @UpdateProvider(type = SupportProvider.class, method = "update")
+    int updateWithSupport(${supportTypeName} support);
+
+    @DeleteProvider(type = SupportProvider.class, method = "delete")
+    int deleteWithSupport(${supportTypeName} support);
+
+    default List<${entityTypeName}> selectAll(${supportTypeName}.Mather mather) {
+        return selectManyWithSupport(${supportTypeName}.of().all().withMather(mather));
+    }
+
+    default int insert(${entityTypeName} record) {
+        ${supportTypeName} support = ${supportTypeName}.of()
+                                    .all()
+                                    .withValue(record);
+        return insertWithSupport(support);
+    }
+
+    default int update(${entityTypeName} record, ${supportTypeName}.Mather mather) {
+        ${supportTypeName} support = ${supportTypeName}.of()
+                                #foreach($field in $fields)
+                                    #if(!$field.id)
+                                    .${field.name}()
+                                    #end
+                                #end
+                                    .withValue(record)
+                                    .withMather(mather);
+        return updateWithSupport(support);
+    }
+
+#if($pkField)
+    default ${entityTypeName} selectByPrimary(${pkField.type} ${pkField.name}) {
+        ${supportTypeName}.Mather mather = ${supportTypeName}.mather()
+                                    .${pkField.name}EqualTo(${pkField.name});
+        ${supportTypeName} support = ${supportTypeName}.of()
+                                    .all()
+                                    .withMather(mather);
+        return selectOneWithSupport(support);
+    }
+
+    default int updateByPrimary(${entityTypeName} record) {
+        ${supportTypeName}.Mather mather = ${supportTypeName}.mather()
+                                            .${pkField.name}EqualTo(record.get#capitalize(${pkField.name})());
+        return update(record, mather);
+    }
+
+    default int deleteByPrimary(${pkField.type} ${pkField.name}) {
+        ${supportTypeName}.Mather mather = ${supportTypeName}.mather()
+                                            .${pkField.name}EqualTo(${pkField.name});
+        ${supportTypeName} support = ${supportTypeName}.of()
+                                        .all()
+                                        .withMather(mather);
+        return deleteWithSupport(support);
+    }
+#end
+}
